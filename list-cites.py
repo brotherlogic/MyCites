@@ -1,13 +1,14 @@
 from sys import argv
 from urllib import quote_plus
 import urllib2
-import re
+import re,sys
 
-info_finder = re.compile('<h3 class="r"><a.*?>(.*?)<')
+info_finder = re.compile('<h3.*?><a.*? class=yC0>(.*?)<')
 cite_finder = re.compile('Cited by (.*?)<')
 
 def doSearch(search_url):
 
+    print "Searching: " + search_url
     results = extract_page(search_url)
     
     for i in range (10,100,10):
@@ -21,30 +22,37 @@ def doSearch(search_url):
 
 def extract_page(page_url):
 
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US;rv:1.9.0.4) Gecko/2008102920 Firefox/3.0.4'}
+    headers = {'User-agent': 'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US) AppleWebKit/525.13 (KHTML, like Gecko) Chrome/0.2.149.29 Safari/525.13'};
+    #headers = {'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US;rv:1.9.0.4) Gecko/2008102920 Firefox/3.0.4'}
 
     req = urllib2.Request(page_url,None,headers)
     superline = ""
     for line in urllib2.urlopen(req):
         superline += line
 
+    fh = open('tester.html','w')
+    fh.write(superline)
+    fh.close()
+
     matches = []
     titles = []
     t_point = 0
     info_finder
     for match in info_finder.findall(superline):
-        titles.append(match.strip())
+        titles.append(match.strip().replace('&hellip;','').strip())
 
     for match in cite_finder.findall(superline):
         if t_point < len(titles):
             matches.append((titles[t_point],int(match)))
             t_point+=1
-    
+
+    print "MATCH",matches
     return matches
     
 
 
-scholar_addr = "http://scholar.google.com/scholar?hl=en&btnG=Search"
+#scholar_addr = "http://scholar.google.com/scholar?hl=en&btnG=Search"
+scholar_addr = "http://scholar.google.co.uk/scholar?hl=en&btnG=Search&as_sdt=2000&as_ylo=&as_vis=0"
 
 search_term = argv[1]
 bibtex_loc = argv[2]
@@ -59,16 +67,16 @@ for line in open(bibtex_loc,'r'):
     elif line.strip().lower().startswith('title'):
         l_line = line.strip().lower()
         title = l_line[l_line.index('{')+1:-2]
-        if title in cite_pairs:
-            #print title,c_ref,cite_pairs[title]
+        for mtitle in cite_pairs:
+            if title.startswith(mtitle):
+                
+                done_already = False
+                for p in pairs:
+                    if p[2] == title:
+                        done_already = True
 
-            done_already = False
-            for p in pairs:
-                if p[2] == title:
-                    done_already = True
-
-            if not done_already:
-                pairs.append((c_ref,cite_pairs[title],title))
+                if not done_already:
+                    pairs.append((c_ref,cite_pairs[mtitle],title))
 
 
 def pair_sort(a,b):
@@ -77,7 +85,9 @@ def pair_sort(a,b):
     else:
         return 1
 
+fh = open(argv[3],'w')
 pairs.sort(pair_sort)
 for pair in pairs[:min(5,len(pairs))]:
-    print pair[0]
+    fh.write(pair[0] + "\n")
+fh.close()
 
