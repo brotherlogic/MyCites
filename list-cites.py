@@ -3,7 +3,7 @@ from urllib import quote_plus
 import urllib2
 import re,sys
 
-info_finder = re.compile('<h3.*?><a.*? class=yC0>(.*?)<')
+info_finder = re.compile('<h3.*?>(<span.*?>.*?</span>)?<a.*?>(.*?)<')
 cite_finder = re.compile('Cited by (.*?)<')
 
 def doSearch(search_url):
@@ -38,7 +38,7 @@ def extract_page(page_url):
     titles = []
     t_point = 0
     info_finder
-    for match in info_finder.findall(superline):
+    for (ignore,match) in info_finder.findall(superline):
         titles.append(match.strip().replace('&hellip;','').strip())
 
     for match in cite_finder.findall(superline):
@@ -61,6 +61,7 @@ cite_pairs = doSearch(scholar_addr + "&q=" + quote_plus(search_term))
 
 c_ref = ''
 pairs = []
+mtitlematch = {}
 for line in open(bibtex_loc,'r'):
     if line.strip().startswith('@'):
         c_ref = line.strip()[line.strip().index('{')+1:-1]
@@ -70,6 +71,7 @@ for line in open(bibtex_loc,'r'):
         for mtitle in cite_pairs:
             if title.startswith(mtitle):
                 
+                mtitlematch[mtitle] = True
                 done_already = False
                 for p in pairs:
                     if p[2] == title:
@@ -78,6 +80,10 @@ for line in open(bibtex_loc,'r'):
                 if not done_already:
                     pairs.append((c_ref,cite_pairs[mtitle],title))
 
+
+for mtitle in cite_pairs:
+    if mtitle not in mtitlematch:
+        print "Cannot match",mtitle
 
 def pair_sort(a,b):
     if a[1] > b[1]:
@@ -88,6 +94,7 @@ def pair_sort(a,b):
 fh = open(argv[3],'w')
 pairs.sort(pair_sort)
 for pair in pairs[:min(5,len(pairs))]:
+    print pair[0],"CITES:",pair[1]
     fh.write(pair[0] + "\n")
 fh.close()
 
