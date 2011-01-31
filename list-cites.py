@@ -8,7 +8,6 @@ cite_finder = re.compile('Cited by (.*?)<')
 
 def doSearch(search_url):
 
-    print "Searching: " + search_url
     results = extract_page(search_url)
     
     for i in range (10,100,10):
@@ -42,11 +41,10 @@ def extract_page(page_url):
         titles.append(match.strip().replace('&hellip;','').strip())
 
     for match in cite_finder.findall(superline):
-        if t_point < len(titles):
+        if t_point < len(titles) and len(titles[t_point]) > 2:
             matches.append((titles[t_point],int(match)))
             t_point+=1
 
-    print "MATCH",matches
     return matches
     
 
@@ -68,9 +66,11 @@ for line in open(bibtex_loc,'r'):
     elif line.strip().lower().startswith('title'):
         l_line = line.strip().lower()
         title = l_line[l_line.index('{')+1:-2]
+        while title.startswith('{'):
+            title = title[1:]
         for mtitle in cite_pairs:
-            if title.startswith(mtitle):
-                
+            if title.startswith(mtitle):                
+                print "MATCH",title,"AND",mtitle
                 mtitlematch[mtitle] = True
                 done_already = False
                 for p in pairs:
@@ -81,9 +81,6 @@ for line in open(bibtex_loc,'r'):
                     pairs.append((c_ref,cite_pairs[mtitle],title))
 
 
-for mtitle in cite_pairs:
-    if mtitle not in mtitlematch:
-        print "Cannot match",mtitle
 
 def pair_sort(a,b):
     if a[1] > b[1]:
